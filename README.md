@@ -26,7 +26,7 @@ Try different force configurations
 Buttons for user to do the above
 Visualization of donor-to-PAC links, button to toggle between the two
 
-Issues to check / discuss at Sunday office hours:
+Issues to check / discuss at next office hours:
 
   Tooltip code (currently commented out) throws the entire graph out of whack - why?
   Aesthetic options for assigning colors / link strength based on data
