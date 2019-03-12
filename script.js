@@ -57,22 +57,43 @@ function myVis([node_data, link_data]) {
                 .attr("stroke-width", 2);
                 // change this to a function at some point
                 // to adjust stroke width based on donations in common
-                var nodes = svg.append("g")
-                               .attr("class", "nodes")
-                               .selectAll("circle")
-                               .data(node_data)
-                               .enter()
-                               .append("circle")
-                               .attr("r", 10)
-                               .attr("fill", "green")
-                               // for unclear reasons adding tooltips screws up the chart
-                            //   .append("title")
-                              // .text(function(d) {
-                                //  return "Name: " + d.name + "Contributions" + d.contrib;
-                              // });
-                               // replace green with a function that chooses a color for each
-                              // node based on a scheme tbd
-  // drag handling
+
+var nodes = svg.append("g")
+               .attr("class", "nodes")
+               .selectAll("circle")
+               .data(node_data)
+               .enter()
+               .append("circle")
+               .attr("r", 10)
+               .attr("fill", "green")
+               .on("mouseover", function(d) {
+//Get this bar's x/y values, then augment for the tooltip
+              var xPosition = d.x;
+              var yPosition = d.y;
+               // for unclear reasons adding tooltips screws up the chart
+            //   .append("title")
+              // .text(function(d) {
+                //  return "Name: " + d.name + "Contributions" + d.contrib;
+              // });
+               // replace green with a function that chooses a color for each
+              // node based on a scheme tbd
+              //Create the tooltip label
+              svg.append("text")
+              .attr("id", "tooltip")
+              .attr("x", xPosition)
+              .attr("y", yPosition)
+              .attr("text-anchor", "middle")
+              .attr("font-family", "sans-serif")
+              .attr("font-size", "11px")
+              .attr("font-weight", "bold")
+              .attr("fill", "black")
+              .text(d.NAME + "\n" + d.pac_contribs)})
+              .on("mouseout", function() {
+//Remove the tooltip
+d3.select("#tooltip").remove();
+})
+
+// drag handling
   var drag_handler = d3.drag()
       .on("start", drag_start)
       .on("drag", drag_drag)
