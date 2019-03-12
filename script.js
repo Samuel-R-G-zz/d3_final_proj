@@ -38,7 +38,8 @@ function myVis([node_data, link_data]) {
                 .enter()
                 .append("line")
                 .attr("stroke", "grey")
-                .attr("stroke-width", 2);
+                .attr("stroke-width", function(d){
+                  return Math.log(d.common_contributions)/3});
                 // change this to a function at some point
                 // to adjust stroke width based on donations in common
 
@@ -48,17 +49,13 @@ var nodes = svg.append("g")
                .data(node_data)
                .enter()
                .append("circle")
-               .attr("r", 10)
+               .attr("r", function(d){
+                 return Math.log(d.pac_contribs)})
                .attr("fill", "green")
                .on("mouseover", function(d) {
 //Get this bar's x/y values, then augment for the tooltip
               var xPosition = d.x;
               var yPosition = d.y;
-               // for unclear reasons adding tooltips screws up the chart
-            //   .append("title")
-              // .text(function(d) {
-                //  return "Name: " + d.name + "Contributions" + d.contrib;
-              // });
                // replace green with a function that chooses a color for each
               // node based on a scheme tbd
               //Create the tooltip label
@@ -73,9 +70,9 @@ var nodes = svg.append("g")
               .attr("fill", "black")
               .text(d.NAME + "\n $" + d.pac_contribs)})
               .on("mouseout", function() {
-//Remove the tooltip
-d3.select("#tooltip").remove();
-})
+              //Remove the tooltip
+              d3.select("#tooltip").remove();
+              })
 
 // drag handling
   var drag_handler = d3.drag()
@@ -111,7 +108,7 @@ d3.select("#tooltip").remove();
   }
 
   simulation.nodes(node_data)
-            .force("charge_force", d3.forceManyBody().strength(-250))
+            .force("charge_force", d3.forceManyBody().strength(-300))
             .force("center_force", d3.forceCenter(width/2, height/2))
             .on("tick", tickTock)
             .force("links", link_force);

@@ -33,7 +33,7 @@ name_dict = {
 to_drop = ["NATIONAL ASSOCIATION OF REALTO, .",
            "NATIONAL EDUCATION, ASSOCIATION"]
 
-
+# deduping
 def replace_name(name):
     for key, value in name_dict.items():
         if name == key:
@@ -50,7 +50,6 @@ def generate_json():
 
     # join donors with committee description file
     contributors = contributions.set_index('CMTE_ID').join(cm.set_index('CMTE_ID'), on="CMTE_ID", how="inner")
-    # names = contributors.NAME.unique()
 
     nodes = contributors.groupby("NAME").sum().to_json(orient="table")
 
