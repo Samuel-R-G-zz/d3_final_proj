@@ -1,21 +1,5 @@
 // adapted from force-graph tutorials on http://www.puzzlr.org/category/d3/
 
-// toy data to be replaced with real imported data some point
-//  var node_data =  [
-//     {"name": "Mr. Moneybags", "contrib": "100"},
-//     {"name": "Joe Billionaire", "contrib": "500"},
-//     {"name": "Peter Peso", "contrib": "2"},
-//     {"name": "Dr. von Deutchesmark", "contrib": "1000"},
-//     {"name": "Bruce Wayne", "contrib": "50000"}]
-//
-// var link_data = [
-//   {"source": "Mr. Moneybags", "target":"Joe Billionaire"},
-//   {"source": "Mr. Moneybags", "target":"Peter Peso"},
-//   {"source": "Mr. Moneybags", "target":"Dr. von Deutchesmark"},
-//   {"source": "Mr. Moneybags", "target":"Bruce Wayne"},
-//   {"source": "Bruce Wayne", "target":"Peter Peso"},
-//   {"source": "Bruce Wayne", "target":"Joe Billionaire"}]
-
 const width = 1000
 const height = 1000
 
@@ -87,7 +71,7 @@ var nodes = svg.append("g")
               .attr("font-size", "11px")
               .attr("font-weight", "bold")
               .attr("fill", "black")
-              .text(d.NAME + "\n" + d.pac_contribs)})
+              .text(d.NAME + "\n $" + d.pac_contribs)})
               .on("mouseout", function() {
 //Remove the tooltip
 d3.select("#tooltip").remove();
@@ -127,7 +111,7 @@ d3.select("#tooltip").remove();
   }
 
   simulation.nodes(node_data)
-            .force("charge_force", d3.forceManyBody())
+            .force("charge_force", d3.forceManyBody().strength(-250))
             .force("center_force", d3.forceCenter(width/2, height/2))
             .on("tick", tickTock)
             .force("links", link_force);
