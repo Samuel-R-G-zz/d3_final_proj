@@ -2,8 +2,8 @@
 
 
 // width & height variables for main chart
-const width = 1500
-const height = 1500
+const width = 1200
+const height = 1200
 
 // load data
 Promise.all([
@@ -15,15 +15,19 @@ Promise.all([
   })
 
 // main function
-
 function myVis([node_data, link_data]) {
   console.log(node_data, link_data)
 
+var FadeTracker = 0
+
 // create main network graph
-  var svg = d3.select("p")
+  var svg = d3.select("#graph")
               .append("svg")
               .attr("width", width)
               .attr("height", height)
+              .on("click", function(d){
+            //  if (FadeTracker = 1) {nodes.style("fill-opacity", 1), console.log(FadeTracker)}
+              })
 
   // create simulation and link force
   var simulation = d3.forceSimulation()
@@ -31,27 +35,26 @@ function myVis([node_data, link_data]) {
                      .id(function(d) { return d.NAME; })
                      .distance(80)
 
-
 // create link map, adapted from https://stackoverflow.com/questions/8739072/highlight-selected-node-its-links-and-its-children-in-a-d3-force-directed-grap
  var linkedByIndex = {};
  link_data.forEach(function(d) {
-   linkedByIndex[d.source.index + "," + d.target.index] = 1;
+   linkedByIndex[d.source + "," + d.target] = true;
+   linkedByIndex[d.target + "," + d.source] = true; // solves nodeless link problem
  });
 
-function neighboring(a, b) {
-return linkedByIndex[a.index + "," + b.index];
-}
-
+ function isConnected(a, b) {
+       return linkedByIndex[a.NAME + "," + b.NAME] || linkedByIndex[b.NAME + "," + a.index] || a.index === b.index;
+   }
 // functions for handling drag
 var drag_handler = d3.drag()
-   .on("start", drag_start)
    .on("drag", drag_drag)
+   .on("start", drag_start)
    .on("end", drag_end);
 
 function drag_start(d){
- if (!d3.event.active) simulation.alphaTarget(0.3).restart()
- d.fx = d.x;
- d.fx = d.y;
+ if (!d3.event.active) {
+   simulation.alphaTarget(0.3).restart()
+ }
 }
 
 function drag_drag(d){
@@ -60,15 +63,31 @@ function drag_drag(d){
 };
 
 function drag_end(d) {
- if (!d3.event.active) simulation.alphaTarget(0);
+ if (!d3.event.active) {
+   simulation.alphaTarget(0);
+ }
  d.fx = d.x;
  d.fy = d.y;
 }
 
+function fade(opacity) {
+    return function(d) {
+        nodes.style("stroke-opacity", function(o) {
+            thisOpacity = isConnected(d, o) ? 1 : opacity;
+            this.setAttribute('fill-opacity', thisOpacity);
+            return thisOpacity;
+        });
+        links.style("stroke-opacity", function(o) {
+                return o.source === d || o.target === d ? 1 : opacity;
+            })}};
+
+const fader = fade(0.1);
+const defade = fade(1);
+
 // func to update position of nodes and links
 function tickTock(){
- nodes.attr("cx", function(d) { return d.x = Math.max(5, Math.min(width - 5, d.x)); })
-        .attr("cy", function(d) { return d.y = Math.max(5, Math.min(height - 5, d.y)); });
+ nodes.attr("cx", function(d) { return d.x = Math.max(15, Math.min(width - 15, d.x)); })
+        .attr("cy", function(d) { return d.y = Math.max(15, Math.min(height - 15, d.y)); });
 
  links.attr("x1", function(d) {return d.source.x;})
  .attr("y1", function(d) {return d.source.y;})
@@ -85,7 +104,7 @@ function tickTock(){
                 .append("line")
                 .attr("stroke", "grey")
                 .attr("stroke-width", function(d){
-                  return Math.log(d.common_contributions)/3});
+                  return Math.log(d.common_contributions)/2});
 
 var nodes = svg.append("g")
                .attr("class", "nodes")
@@ -94,60 +113,45 @@ var nodes = svg.append("g")
                .enter()
                .append("circle")
                .attr("r", function(d){
-                 return Math.log(d.pac_contribs)})
+                 return d.scale})
+                 //return Math.log(d.pac_contribs)})
                .attr("fill", "green")
                .on("mouseover", function(d) {
               var xPosition = d.x; // get current mouse position
               var yPosition = d.y;
-               // replace green with a function that chooses a color for each
-              // node based on a scheme tbd
-              // Create the tooltip label
-              svg.append("rect")
-                 .attr("id", "tooltip_bg")
-                .attr("x", xPosition - 150)
-                .attr("y", yPosition - 40)
-                .attr("fill", "yellow")
-                .attr("width", 300)
-                .attr("height", 25)
-              svg.append("text")
-              .attr("id", "tooltip")
-              .attr("x", xPosition)
-              .attr("y", yPosition - 25)
-              .attr("text-anchor", "middle")
-              .attr("font-family", "sans-serif")
-              .attr("font-size", "15px")
-              .attr("font-weight", "bold")
-              .attr("fill", "black")
-              .text(d.NAME + "\n $" + d.pac_contribs)
-            })
-              .on("click", function(d){
-              svg.append("rect")
-                 .attr("id", "infobox")
-                 .attr("x", 0)
-                 .attr("y", 0)
-                 .attr("fill", "light blue")
-                 .attr("width", 500)
-                 .attr("height", 100)
-               svg.append("text")
-               .attr("id", "infotext")
-               .attr("x", 15)
-               .attr("y", 15)
-               .attr("text-anchor", "middle")
-               .attr("font-family", "sans-serif")
-               .attr("font-size", "15px")
-               .attr("font-weight", "bold")
-               .attr("fill", "black")
-               .text(d.filler_text)})
 
-              // for highlighting neighoring nodes
-              //      nodes.style("opacity", function(o) {
-              //        return neighboring(d, o) ? 1 : opacity;
-              //      });
-            //)
+              // Create the tooltip label
+              d3.select("#tooltip")
+                .style("left", xPosition + "px")
+                .style("top", yPosition + "px")
+                .select("#name")
+                .text(d.NAME)
+
+              d3.select("#contribs") // one line?
+                .text(d.pac_contribs);
+
+                d3.select("#tooltip").classed("hidden", false);
+            })
+               // .on("click", fader)
+               // , function(d){
+               //   d3.select("#infobox")
+               //     .append("text")
+               //     .text(d.filler_text)
+               //})
+              .on("click", function(d){
+                fader(d)
+              //  else {defade(d), FadeTracker = 0};
+              //  fader(d),
+                d3.select("#Employer")
+                  .text(d.EMPLOYER);
+                d3.select("#Occupation")
+                    .text(d.OCCUPATION);
+              })
+            // .on("click", function () {if (FadeTracker === 0) {fade(.1),
+          //   FadeTracker = 1}
+        //     else {fade(1), FadeTracker = 0}})
             .on("mouseout", function() {
-              //Remove the tooltip
-              d3.select("#tooltip").remove()
-              d3.select("#tooltip_bg").remove();
+              d3.select("#tooltip").classed("hidden", true);
               })
 
 

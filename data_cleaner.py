@@ -30,9 +30,6 @@ name_dict = {
     "UIHLEIN, RICHARD E. MR.": "UIHLEIN, RICHARD"
     }
 
-to_drop = ["NATIONAL ASSOCIATION OF REALTO, .",
-           "NATIONAL EDUCATION, ASSOCIATION"]
-
 # deduping
 def replace_name(name):
     for key, value in name_dict.items():
@@ -46,12 +43,24 @@ def generate_json():
     cm.columns = pd.read_csv("cm_header_file.csv").columns
 
     contributions = pd.read_csv("contributions.csv")
-    contributions["NAME"] = contributions["NAME"].map(replace_name)  # dedupe donors
+    contributions = contributions[contributions["NAME"] != "NATIONAL EDUCATION, ASSOCIATION"]
+    contributions = contributions[contributions["NAME"] != "NATIONAL ASSOCIATION OF REALTO, ."]
+    contributions["NAME"] = contributions["NAME"].map(replace_name)
+    names = contributions["NAME"].unique()
+    for name in names:
+        try:
+            contributions.loc[contributions["NAME"] == name, "EMPLOYER"] = contributions.loc[contributions["NAME"] == name, "EMPLOYER"].mode()[0]
+            contributions.loc[contributions["NAME"] == name, "OCCUPATION"] = contributions.loc[contributions["NAME"] == name, "OCCUPATION"].mode()[0]
+        except:
+            contributions.loc[contributions["NAME"] == name, "EMPLOYER"] = "NONE"
+            contributions.loc[contributions["NAME"] == name, "OCCUPATION"] = "NONE"
 
     # join donors with committee description file
     contributors = contributions.set_index('CMTE_ID').join(cm.set_index('CMTE_ID'), on="CMTE_ID", how="inner")
 
-    nodes = contributors.groupby("NAME").sum().to_json(orient="table")
+    nodes = contributors.groupby(["NAME", "EMPLOYER", "OCCUPATION"]).sum()
+    nodes["scale"] = (nodes["pac_contribs"] / nodes["pac_contribs"].max()) * 100
+    nodes = nodes.to_json(orient="table")
 
     links = contributors.join(contributors, on="CMTE_ID", rsuffix="_2", how="left")
     links = links[links["NAME"] != links["NAME_2"]]
