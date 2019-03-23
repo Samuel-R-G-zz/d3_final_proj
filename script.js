@@ -16,7 +16,6 @@ Promise.all([
 
 // main function
 function myVis([node_data, link_data]) {
-  console.log(node_data, link_data)
 
 // for scaling https://stackoverflow.com/questions/4020796/finding-the-max-value-of-an-attribute-in-an-array-of-objects
 var contribMax = Math.max.apply(Math,node_data.map(function(o){return o.pac_contribs;}))
