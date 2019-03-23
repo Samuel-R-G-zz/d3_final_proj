@@ -3,7 +3,7 @@
 
 // width & height variables for main chart
 const width = 1200
-const height = 1200
+const height = 900
 
 // load data
 Promise.all([
@@ -18,7 +18,26 @@ Promise.all([
 function myVis([node_data, link_data]) {
   console.log(node_data, link_data)
 
-var FadeTracker = 0
+// for scaling https://stackoverflow.com/questions/4020796/finding-the-max-value-of-an-attribute-in-an-array-of-objects
+var contribMax = Math.max.apply(Math,node_data.map(function(o){return o.pac_contribs;}))
+var contribMin = Math.min.apply(Math,node_data.map(function(o){return o.pac_contribs;}))
+var commonMax = Math.max.apply(Math,link_data.map(function(o){return o.common_contributions;}))
+var commonMin = Math.min.apply(Math,link_data.map(function(o){return o.common_contributions;}))
+
+const rangeMax = 35
+const rangeMin = 5
+
+var nodeScaling = d3.scaleSqrt()
+  .domain([contribMin, contribMax])
+  .range([rangeMin, rangeMax]);
+
+var linkScaling = d3.scaleLinear()
+    .domain([commonMin, commonMax])
+    .range([.1, 1]);
+
+  var linkScaling2 = d3.scaleLinear()
+      .domain([commonMin, commonMax])
+      .range([1, 40]);
 
 // create main network graph
   var svg = d3.select("#graph")
@@ -29,11 +48,39 @@ var FadeTracker = 0
             //  if (FadeTracker = 1) {nodes.style("fill-opacity", 1), console.log(FadeTracker)}
               })
 
+// create background rect for defading
+svg.append("rect")
+    .attr("width", width)
+    .attr("height", height)
+    .attr("fill", "white")
+    .on("click", function(d){defade(1)
+      d3.selectAll("circle").style("stroke", "black").style("stroke-width", 2)
+})
+
+
+var node_legend_svg = d3.select("#node_legend").append("svg").attr("width", 100).attr("height", 45)
+var link_legend_svg = d3.select("#node_legend").append("svg").attr("width", 100).attr("height", 40)
+
+node_legend_svg.append("g").append("circle")
+    .attr("r", 20)
+    .attr("fill", "green")
+    .style('transform', 'translate(50%, 50%)')
+
+link_legend_svg.append('line')
+    .attr("x1", 10)
+    .attr("y1", 15)
+    .attr("x2", 100)
+    .attr("y2", 15)
+    .attr("stroke", "grey")
+    .attr("stroke-width", 10)
+
+
   // create simulation and link force
   var simulation = d3.forceSimulation()
   var link_force = d3.forceLink(link_data)
                      .id(function(d) { return d.NAME; })
-                     .distance(80)
+                     .distance(150)
+                     .strength(function(d){return linkScaling(d.common_contributions)})
 
 // create link map, adapted from https://stackoverflow.com/questions/8739072/highlight-selected-node-its-links-and-its-children-in-a-d3-force-directed-grap
  var linkedByIndex = {};
@@ -86,8 +133,8 @@ const defade = fade(1);
 
 // func to update position of nodes and links
 function tickTock(){
- nodes.attr("cx", function(d) { return d.x = Math.max(15, Math.min(width - 15, d.x)); })
-        .attr("cy", function(d) { return d.y = Math.max(15, Math.min(height - 15, d.y)); });
+ nodes.attr("cx", function(d) { return d.x = Math.max(rangeMax, Math.min(width - rangeMax, d.x)); })
+        .attr("cy", function(d) { return d.y = Math.max(rangeMax, Math.min(height - rangeMax, d.y)); });
 
  links.attr("x1", function(d) {return d.source.x;})
  .attr("y1", function(d) {return d.source.y;})
@@ -102,9 +149,9 @@ function tickTock(){
                 .data(link_data)
                 .enter()
                 .append("line")
-                .attr("stroke", "grey")
+                .attr("stroke", "#3D3C3A")
                 .attr("stroke-width", function(d){
-                  return Math.log(d.common_contributions)/2});
+                  return linkScaling2(d.common_contributions)});
 
 var nodes = svg.append("g")
                .attr("class", "nodes")
@@ -113,9 +160,9 @@ var nodes = svg.append("g")
                .enter()
                .append("circle")
                .attr("r", function(d){
-                 return d.scale})
-                 //return Math.log(d.pac_contribs)})
+                 return nodeScaling(d.pac_contribs)})
                .attr("fill", "green")
+               .style("stroke", "black").style("stroke-width", 2)
                .on("mouseover", function(d) {
               var xPosition = d.x; // get current mouse position
               var yPosition = d.y;
@@ -126,30 +173,41 @@ var nodes = svg.append("g")
                 .style("top", yPosition + "px")
                 .select("#name")
                 .text(d.NAME)
-
-              d3.select("#contribs") // one line?
+              d3.select("#contribs")
                 .text(d.pac_contribs);
-
                 d3.select("#tooltip").classed("hidden", false);
             })
-               // .on("click", fader)
-               // , function(d){
-               //   d3.select("#infobox")
-               //     .append("text")
-               //     .text(d.filler_text)
-               //})
               .on("click", function(d){
                 fader(d)
-              //  else {defade(d), FadeTracker = 0};
-              //  fader(d),
-                d3.select("#Employer")
+                d3.selectAll("circle").style("stroke", "black").style("stroke-width", 2)
+                selected_node = d3.select(this)
+                selected_node.style("stroke", "gold").style("stroke-width", 5)
+                d3.select("#name")
+                  .text(d.NAME)
+                d3.select("#employer")
                   .text(d.EMPLOYER);
-                d3.select("#Occupation")
+                d3.select("#occupation")
                     .text(d.OCCUPATION);
-              })
-            // .on("click", function () {if (FadeTracker === 0) {fade(.1),
-          //   FadeTracker = 1}
-        //     else {fade(1), FadeTracker = 0}})
+                d3.select("#recipient_1")
+                    .text(d.recipients[0]);
+                d3.select("#recipient_2")
+                    .text(d.recipients[1]);
+                d3.select("#recipient_3")
+                    .text(d.recipients[2]);
+                d3.select("#recipient_4")
+                    .text(d.recipients[3]);
+                d3.select("#recipient_5")
+                    .text(d.recipients[4]);
+                d3.select("#recipient_6")
+                    .text(d.recipients[5]);
+                d3.select("#recipient_7")
+                    .text(d.recipients[6]);
+                d3.select("#recipient_8")
+                    .text(d.recipients[7]);
+                d3.select("#recipient_9")
+                    .text(d.recipients[8]);
+                d3.select("#recipient_10")
+                    .text(d.recipients[9]);                                  })
             .on("mouseout", function() {
               d3.select("#tooltip").classed("hidden", true);
               })
@@ -162,7 +220,7 @@ simulation.nodes(node_data)
             .force("charge_force", d3.forceManyBody()
                                      .strength(-300)
                                       )
-            .force("center_force", d3.forceCenter(width/2, height/2))
+            .force("center_force", d3.forceCenter(width/3, height/2))
             .on("tick", tickTock)
             .force("links", link_force);
 

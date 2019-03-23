@@ -57,9 +57,19 @@ def generate_json():
 
     # join donors with committee description file
     contributors = contributions.set_index('CMTE_ID').join(cm.set_index('CMTE_ID'), on="CMTE_ID", how="inner")
+    contributors = contributors.sort_values(by=["NAME", "pac_contribs"], ascending=False)
+    contributors["recipients"] = list(zip(contributors.CMTE_NM, " $" + contributors.pac_contribs.map(str))) ## provisional
+    recipient_list = contributors.groupby("NAME")["recipients"].apply(list)
+    #amount_list = contributors.groupby("NAME")["pac_contribs"].apply(list)
+    #amount_list.name = "amounts"
+    #for i in range(len(pac_list)):
+        #pac_list[i] = pac_list[i][0:10]
 
     nodes = contributors.groupby(["NAME", "EMPLOYER", "OCCUPATION"]).sum()
-    nodes["scale"] = (nodes["pac_contribs"] / nodes["pac_contribs"].max()) * 100
+    nodes = nodes.join(recipient_list, on="NAME", how="inner")
+    #nodes = nodes.join(amount_list, on="NAME", how="inner")
+
+    #nodes["scale"] = (nodes["pac_contribs"] / nodes["pac_contribs"].max()) * 100
     nodes = nodes.to_json(orient="table")
 
     links = contributors.join(contributors, on="CMTE_ID", rsuffix="_2", how="left")
